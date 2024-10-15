@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="icon.png" />
+    <title>Document</title>
+    <script src="helpers.js"></script>
+    <style>
+      body > div {
+        display: flex;
+        border: 1px solid black;
+        margin-top: 10px;
+      }
+      div > div {
+        display: block;
+        border-right: 1px solid black;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .current {
+        background-color: aquamarine;
+      }
+    </style>
+  </head>
+  <body>
+    <button>Input and Go</button>
+    <br />
+    <div></div>
+    <script>
+      let turingMachine = {};
+      let arr = [];
+      let state = 0,
+        position = 0;
+
+      let speed = 40;
+
+      async function loadMachine() {
+        let req = await fetch("machine.tm");
+        let m = await req.text();
+        let arr = m.split("\n").map((e) => e.trim());
+        console.log(m);
+        for (let a of arr) {
+          let p = a.split("-");
+          if (p[1] == "!" || p[1] == "#") {
+            turingMachine[p[0]] = p[1];
+            continue;
+          }
+          let obj = { ns: "", w: "1", dir: "R" };
+          let ss = p[1].split("*")[1];
+          let r = p[1].split(">")[0];
+          let w = p[1].split(">")[1].split(",")[0];
+          let d = p[1].split(",")[1].split("*")[0];
+          obj.ns = ss;
+          obj.w = w;
+          obj.dir = d;
+          let key = p[0] + "-" + r;
+          turingMachine[key] = obj;
+        }
+        console.log(turingMachine);
+      }
+
+      function readTape(ix) {
+        return arr[ix] || " ";
+      }
+
+      function nextStep() {
+        let sym = readTape(position);
+        if (turingMachine[state] == "!") {
+          obj("div").style.backgroundColor = "#26ff6f";
+          return;
+        }
+        if (turingMachine[state] == "#") {
+          obj("div").style.backgroundColor = "#de7373";
+          return;
+        }
+        let key = state + "-" + sym;
+        let instr = turingMachine[key];
+        setTimeout(() => {
+          writeAt(position, instr.w);
+        }, speed * 1);
+        setTimeout(() => {
+          state = instr.ns;
+          moveScanner(instr.dir);
+        }, speed * 2);
+        setTimeout(() => {
+          nextStep();
+        }, speed * 4);
+      }
+
+      function writeAt(ix, value) {
+        if(value == '%') return;
+        arr[position] = value;
+        renderArray();
+      }
+
+      function moveScanner(lr) {
+        if (lr == "L") {
+          position = Math.max(position - 1, 0);
+        } else if (lr == "R") {
+          position++;
+        }
+        renderArray();
+      }
+
+      loadMachine();
+
+      obj("button").on("click", (e) => {
+        state = 0;
+        position = 0;
+        obj("div").style.backgroundColor = "#fff";
+        let input = prompt("Enter staring string");
+        arr = input.split("");
+        speed = 700 / arr.length;
+        renderArray();
+        nextStep();
+      });
+
+      function renderArray() {
+        while(arr.length < position+1){
+            arr.push(' ');
+        }
+        obj("div").innerHTML = "";
+        for (let i of arr) {
+          let d = create("div", i);
+          obj("div").appendChild(d);
+        }
+        obj("div").children[position]?.classList.add("current");
+      }
+    </script>
+  </body>
+</html>
